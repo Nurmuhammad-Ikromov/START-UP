@@ -4,9 +4,9 @@ import {
     Container,
     TextField,
     Typography,
-
     InputAdornment,
     IconButton,
+    CircularProgress,
 } from '@mui/material';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
@@ -17,36 +17,46 @@ const Register = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [email, setEmail] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
-    const navigate = useNavigate()
+    const [loading, setLoading] = useState(false); // loader uchun state
+    const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
         if (!password) {
             setError('Password is required');
-        } else if (password !== confirmPassword) {
+            return;
+        }
+        if (password !== confirmPassword) {
             setError('Passwords do not match');
-        } else {
-            setError('');
+            return;
+        }
+        if (!email) {
+            setError('Email is required');
+            return;
+        }
+        setError('');
+        setLoading(true);
 
-            // Register logic
-
-
-            API.post("/signup", {
+        try {
+            const res = await API.post("/signup", {
                 name: username,
-                email: "nur@gmail.com",
+                email: email,
                 key: password,
                 secret: "my-secret"
-            }).then((res) => {
-                const { key, secret } = res.data.data;
-                setAuthData(key, secret);
-                navigate("/")
-                console.log("Tizimga muvaffaqiyatli kirdingiz");
             });
 
-            console.log({ username, password });
+            const { key, secret } = res.data.data;
+            setAuthData(key, secret);
+            navigate("/");
+            console.log("Tizimga muvaffaqiyatli kirdingiz");
+        } catch (err) {
+            setError(err.response?.data?.message || 'Registration failed');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -65,6 +75,18 @@ const Register = () => {
                 Sign up
             </Typography>
 
+            {/* Error message chiqarish */}
+            {error && (
+                <Typography
+                    variant="body2"
+                    color="error"
+                    align="center"
+                    sx={{ mb: 2 }}
+                >
+                    {error}
+                </Typography>
+            )}
+
             <form onSubmit={handleSubmit}>
                 <TextField
                     label="Username"
@@ -76,6 +98,18 @@ const Register = () => {
                 />
 
                 <TextField
+                    label="Email"
+                    variant="outlined"
+                    fullWidth
+                    margin="normal"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    error={!!error && !email}
+                    helperText={!email && error === 'Email is required' ? error : ''}
+                />
+
+                <TextField
                     label="Password"
                     variant="outlined"
                     fullWidth
@@ -84,7 +118,7 @@ const Register = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     error={!!error && !password}
-                    helperText={!password && error ? error : ''}
+                    helperText={!password && error === 'Password is required' ? error : ''}
                     InputProps={{
                         endAdornment: (
                             <InputAdornment position="end">
@@ -119,9 +153,14 @@ const Register = () => {
                     variant="contained"
                     fullWidth
                     type="submit"
+                    disabled={loading}
                     sx={{ mt: 2, backgroundColor: '#6A00FF' }}
                 >
-                    Submit
+                    {loading ? (
+                        <CircularProgress size={24} sx={{ color: 'white' }} />
+                    ) : (
+                        'Submit'
+                    )}
                 </Button>
             </form>
 
